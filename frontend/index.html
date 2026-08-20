@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Extension — Multi-Blogger Publisher</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<main class="container">
+<header class="hero">
+  <div><p class="eyebrow">Central Publishing CMS</p><h1>Extension</h1><p class="muted">Publish one post to multiple Blogger blogs across independent Google accounts.</p></div>
+  <button id="logout" class="ghost" hidden>Sign out</button>
+</header>
+
+<section id="loginCard" class="card narrow">
+  <h2>Administrator sign in</h2>
+  <p class="muted">The CMS administrator password is kept server-side. Google Blogger credentials never enter this page.</p>
+  <form id="loginForm"><label>Administrator password<input name="password" type="password" autocomplete="current-password" required></label><button class="primary">Sign in</button></form>
+  <p id="loginError" class="error"></p>
+</section>
+
+<div id="app" hidden>
+<section class="card">
+  <div class="section-head"><div><h2>Connected Google accounts</h2><p class="muted">Each account is independently authorized for Blogger.</p></div><button id="connectGoogle">+ Connect Google account</button></div>
+  <div id="accountList"></div>
+</section>
+
+<section class="card">
+<h2>Create & publish post</h2>
+<form id="publishForm">
+  <div class="grid"><label>Title<input name="title" maxlength="300" required></label><label>Chapter number<input name="chapterNumber" maxlength="50"></label></div>
+  <label>Slug<input name="slug" pattern="[A-Za-z0-9]+(-[A-Za-z0-9]+)*" required><small>Letters, numbers and hyphens. Blogger may add its own date/path components.</small></label>
+  <label>Post body / HTML<textarea name="content" rows="14" required></textarea></label>
+  <label>Featured image URL<input name="featuredImage" type="url"></label>
+  <label>Labels <input name="labels" placeholder="manga, chapter, action"></label>
+  <div><h3>Select blogs</h3><div id="blogList" class="blog-list"><p class="muted">Connect a Google account first.</p></div></div>
+  <button class="primary" type="submit">Publish to selected blogs</button>
+  <span id="publishState" class="muted"></span>
+</form>
+</section>
+
+<section class="card" id="resultsCard" hidden><h2>Publishing results</h2><div id="resultList"></div></section>
+<section class="card"><div class="section-head"><div><h2>Recent publications</h2><p class="muted">Per-blog status history.</p></div><button id="refreshPublications" class="ghost">Refresh</button></div><div id="publicationList"></div></section>
+</div>
+</main>
+<script src="./app.js" defer></script>
+</body>
+</html>
