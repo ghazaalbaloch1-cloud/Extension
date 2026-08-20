@@ -1,53 +1,27 @@
-# Extension — Multi-Blogger Central Publisher
+# Extension — GitHub-only Multi-Blogger Publisher
 
-A production-oriented central CMS for publishing one logical post to multiple Blogger blogs, including blogs authorized through different Google accounts.
+Static GitHub Pages CMS for publishing one post to multiple Blogger blogs across independently authorized Google accounts.
 
-## Current implementation
+## GitHub-only architecture
 
-- GitHub Pages-compatible central CMS
-- Cloudflare Worker API
-- Google OAuth 2.0 authorization-code flow
-- Independent Google publishing accounts
-- Blogger API v3 REST publishing
-- Automatic access-token refresh using encrypted refresh tokens
-- Per-account Blogger blog discovery
-- Multi-blog publishing with isolated results
-- Duplicate protection using server records plus Blogger labels
-- Reauthorization state for revoked/expired Google access
-- Server-side session authentication for the CMS
-- Encrypted token storage using AES-GCM before Cloudflare KV persistence
-- GitHub Pages deployment workflow
-- Server-side publication history and useful error statuses
+- GitHub Pages hosts the complete CMS.
+- Google Identity Services obtains short-lived Blogger OAuth access tokens in the browser.
+- The browser calls the Blogger REST API directly with `https://www.googleapis.com/auth/blogger`.
+- No Cloudflare Worker, server, database, or Google OAuth client secret is required.
 
-## Architecture
+## Security
 
-```text
-GitHub Pages CMS
-      ↓
-Cloudflare Worker API
-      ↓
-Google OAuth / encrypted account storage
-      ↓
-Blogger REST API v3
-      ↓
-Blog A + Blog B + Blog C + ...
-```
+Only the OAuth client ID is configured in the frontend. Never commit a Google client secret, refresh token, service-account credential, or access token. This design intentionally does not request offline refresh tokens; access tokens are temporary and may require reconnecting an account after expiry.
 
-The number of connected Google accounts is not hardcoded to five.
+## Setup
 
-## Important security rule
+1. Create a Google Cloud OAuth 2.0 **Web application** client.
+2. Add the exact GitHub Pages origin to Authorized JavaScript origins.
+3. Enable the Blogger API in that Google Cloud project.
+4. Open the live Pages site and enter the OAuth client ID.
+5. Connect each Google account separately.
+6. Select blogs and publish.
 
-Never put OAuth client secrets, refresh tokens, access tokens, encryption keys, or administrator secrets in frontend files or GitHub commits. Configure them as Cloudflare Worker secrets.
+## Important limitation
 
-## Documentation
-
-- `docs/ARCHITECTURE.md` — system/data/publishing architecture
-- `docs/DEPLOYMENT.md` — Google, Cloudflare, GitHub Pages, and first-account setup
-- `worker/wrangler.toml` — Worker configuration
-- `frontend/` — central CMS
-
-## Blogger behavior
-
-The Blogger REST API is used directly. The CMS treats the supplied slug as the logical publication identifier; Blogger remains responsible for its final URL/date path behavior.
-
-Each selected blog is processed independently. A failed authorization/API request on one blog does not mark successful publications on other blogs as failed.
+GitHub Pages is static hosting, so it cannot securely store refresh tokens or operate a private OAuth callback server. Therefore this GitHub-only version uses browser access tokens. It is appropriate for an operator-controlled publishing console. Persistent background publishing would require a server-side OAuth backend.
