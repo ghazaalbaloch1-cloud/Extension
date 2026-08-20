@@ -1,27 +1,73 @@
 # Extension — GitHub-only Multi-Blogger Publisher
 
-Static GitHub Pages CMS for publishing one post to multiple Blogger blogs across independently authorized Google accounts.
+A central Blogger publishing CMS hosted on GitHub Pages, with a local Chrome extension acting as the secure Google/Blogger access bridge.
 
-## GitHub-only architecture
+## Architecture
 
-- GitHub Pages hosts the complete CMS.
-- Google Identity Services obtains short-lived Blogger OAuth access tokens in the browser.
-- The browser calls the Blogger REST API directly with `https://www.googleapis.com/auth/blogger`.
-- No Cloudflare Worker, server, database, or Google OAuth client secret is required.
+```text
+GitHub Pages CMS
+      ↓ Chrome external messaging
+Extension Blogger Access
+      ↓ Google OAuth 2.0
+Google Account 1 ──→ Blog A / Blog B
+Google Account 2 ──→ Blog C
+Google Account 3 ──→ Blog D / Blog E
+      ↓
+Blogger REST API v3
+```
+
+The GitHub Pages site never receives or stores Google refresh tokens. The Chrome extension owns OAuth tokens and calls Blogger directly.
+
+## Features
+
+- Multiple independently authorized Google accounts
+- Blogger blog discovery per account
+- Select multiple blogs across accounts
+- One-click multi-blog publishing
+- Individual success/failure results
+- Reauthorization handling
+- Duplicate protection using a deterministic post marker
+- Retry support through the extension message API
+- Local publication history
+- No Cloudflare Worker
+- No Firestore
+- No paid backend
+- No Google OAuth client secret in the repository
+
+## Chrome extension setup
+
+1. Enable the Blogger API in Google Cloud.
+2. Create an OAuth 2.0 client of type **Chrome Extension**.
+3. First load `extension/` as an unpacked extension in Chrome.
+4. Copy the Extension ID shown by `chrome://extensions`.
+5. Configure the Chrome Extension OAuth client for that Extension ID.
+6. Put the OAuth client ID in `extension/config.js`.
+7. Reload the extension.
+8. Copy the same Extension ID into `frontend/config.js`.
+9. Deploy GitHub Pages using the included Pages workflow.
+10. Open the live CMS and click **Connect Google account**.
+
+Google's Chrome extension guidance recommends the Chrome Identity API for extension OAuth, and Google's OAuth documentation identifies Chrome Extension as the appropriate client type for Chrome extensions. The implementation uses Chrome's identity authorization flow and PKCE-style state/challenge protection where the extension handles the browser OAuth exchange.
+
+## Install locally
+
+```powershell
+# GitHub CLI
+ gh repo clone ghazaalbaloch1-cloud/Extension
+ cd Extension
+ explorer .\extension
+```
+
+Then Chrome → `chrome://extensions` → **Developer mode** → **Load unpacked** → select the `extension` folder.
 
 ## Security
 
-Only the OAuth client ID is configured in the frontend. Never commit a Google client secret, refresh token, service-account credential, or access token. This design intentionally does not request offline refresh tokens; access tokens are temporary and may require reconnecting an account after expiry.
-
-## Setup
-
-1. Create a Google Cloud OAuth 2.0 **Web application** client.
-2. Add the exact GitHub Pages origin to Authorized JavaScript origins.
-3. Enable the Blogger API in that Google Cloud project.
-4. Open the live Pages site and enter the OAuth client ID.
-5. Connect each Google account separately.
-6. Select blogs and publish.
+- Never commit Google client secrets.
+- Never put access/refresh tokens in GitHub Pages files.
+- The extension stores its account authorization state in Chrome extension storage.
+- The CMS is allowlisted in `externally_connectable` so arbitrary websites cannot call the extension.
+- Blogger API requests use the OAuth scope `https://www.googleapis.com/auth/blogger`.
 
 ## Important limitation
 
-GitHub Pages is static hosting, so it cannot securely store refresh tokens or operate a private OAuth callback server. Therefore this GitHub-only version uses browser access tokens. It is appropriate for an operator-controlled publishing console. Persistent background publishing would require a server-side OAuth backend.
+This is intentionally an operator-controlled GitHub + Chrome architecture. The Chrome extension must be installed and running for publishing. If the extension is removed, the GitHub Pages CMS cannot access Blogger. Fully server-side/background publishing without the browser present requires a server-side OAuth backend.
