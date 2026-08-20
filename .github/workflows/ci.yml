@@ -17,9 +17,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
-      - name: Validate Worker JavaScript
-        run: node --check worker/src/index.v2.js
       - name: Validate CMS JavaScript
         run: node --check frontend/app.js
+      - name: Validate Chrome extension JavaScript
+        run: node --check extension/background.js && node --check extension/popup.js && node --check extension/config.js
       - name: Validate required frontend files
         run: test -f frontend/index.html && test -f frontend/styles.css && test -f frontend/config.js
+      - name: Validate extension files
+        run: test -f extension/manifest.json && test -f extension/background.js && test -f extension/popup.html && test -f extension/popup.js && test -f extension/config.js
