@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.DS_Store
+*.sqlite
+*.db
+credentials.json
+client_secret*.json
+*.pem
+*.key
