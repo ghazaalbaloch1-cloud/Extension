@@ -9,7 +9,7 @@ async function render(){
   for(const account of response.accounts){
     const row=document.createElement('div'); row.className='row';
     row.innerHTML=`<strong>${escapeHtml(account.email)}</strong><br><span class="muted">${escapeHtml(account.status)} · ${(account.blogs||[]).length} blog(s)</span><br><br><button class="secondary" data-id="${escapeHtml(account.id)}">Disconnect</button>`;
-    row.querySelector('button').onclick=async()=>{await send({type:'disconnect',accountId});await render();};
+    row.querySelector('button').onclick=async()=>{await send({type:'disconnect',accountId:account.id});await render();};
     root.appendChild(row);
   }
 }
