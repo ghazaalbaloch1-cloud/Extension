@@ -1,24 +1,76 @@
-const BLOGGER_SCOPE='https://www.googleapis.com/auth/blogger';
-const CLIENT_KEY='extension_google_client_id';
-const ACCOUNTS_KEY='extension_blogger_accounts_v1';
-const HISTORY_KEY='extension_publication_history_v1';
-let accounts=loadJson(ACCOUNTS_KEY,[]), tokenClients=new Map();
-const $=s=>document.querySelector(s);
-function loadJson(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f));}catch{return f;}}
-function saveJson(k,v){localStorage.setItem(k,JSON.stringify(v));}
+const $ = s => document.querySelector(s);
+const EXTENSION_ID = window.BLOGGER_EXTENSION_ID || '';
+let accounts = [];
+
+function extensionAvailable(){ return !!EXTENSION_ID && !EXTENSION_ID.startsWith('REPLACE_') && !!window.chrome?.runtime?.sendMessage; }
+
+async function bridge(type, payload = {}){
+  if(!extensionAvailable()) throw new Error('Chrome Blogger Access extension is not configured or installed.');
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(EXTENSION_ID, { type, ...payload }, response => {
+      const last = chrome.runtime.lastError;
+      if(last) return reject(new Error('Chrome extension is not reachable. Check that it is installed and that frontend/config.js contains its correct Extension ID.'));
+      if(!response?.ok) return reject(new Error(response?.error || 'Extension request failed.'));
+      resolve(response);
+    });
+  });
+}
+
 function escapeHtml(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function clientId(){return localStorage.getItem(CLIENT_KEY)||'';}
-function init(){ $('#configForm').clientId.value=clientId(); $('#app').hidden=!clientId(); renderAccounts();renderHistory(); $('#configForm').addEventListener('submit',e=>{e.preventDefault();const id=new FormData(e.currentTarget).get('clientId').trim();if(!/\.apps\.googleusercontent\.com$/.test(id))return setState('Enter a valid Google OAuth Web Client ID.');localStorage.setItem(CLIENT_KEY,id);$('#app').hidden=false;setState('Client ID saved locally. No secret is required.',true);}); $('#connectGoogle').addEventListener('click',connectGoogle);$('#publishForm').addEventListener('submit',publishAll);$('#clearHistory').addEventListener('click',()=>{if(confirm('Clear local publication history?')){localStorage.removeItem(HISTORY_KEY);renderHistory();}});}
-function setState(t,ok=false){$('#configState').textContent=t;$('#configState').className=ok?'success':'muted';}
-function connectGoogle(){if(!clientId())return alert('Save the Google OAuth Client ID first.');if(!window.google?.accounts?.oauth2)return alert('Google OAuth is still loading. Try again in a moment.');const id=crypto.randomUUID();const client=google.accounts.oauth2.initTokenClient({client_id:clientId(),scope:BLOGGER_SCOPE,prompt:'consent',callback:async r=>{if(r.error)return alert(`Google authorization failed: ${r.error}`);try{const profile=await googleApi('/oauth2/v3/userinfo',r.access_token);const blogs=await listBlogs(r.access_token);const account={id,email:profile.email||'Google account',name:profile.name||'',blogs,connectedAt:new Date().toISOString()};accounts=accounts.filter(a=>a.email!==account.email);accounts.push(account);saveJson(ACCOUNTS_KEY,accounts);tokenClients.set(id,{accessToken:r.access_token,expiresAt:Date.now()+Number(r.expires_in||3600)*1000,client});account.tokenKey=id;saveJson(ACCOUNTS_KEY,accounts);renderAccounts();alert(`Connected ${account.email} with ${blogs.length} Blogger blog(s).`);}catch(e){alert(e.message);}}});tokenClients.set(id,{client});client.requestAccessToken();}
-async function getToken(account){let state=tokenClients.get(account.id);if(state?.accessToken&&state.expiresAt>Date.now()+60000)return state.accessToken;if(!state){if(!window.google?.accounts?.oauth2)throw new Error('Google OAuth library is unavailable.');const client=google.accounts.oauth2.initTokenClient({client_id:clientId(),scope:BLOGGER_SCOPE,prompt:'none',callback:null});state={client};tokenClients.set(account.id,state);}return new Promise((resolve,reject)=>{state.client.callback=r=>{if(r.error)return reject(new Error('Google authorization expired. Reconnect this account.'));state.accessToken=r.access_token;state.expiresAt=Date.now()+Number(r.expires_in||3600)*1000;resolve(r.access_token);};try{state.client.requestAccessToken({prompt:''});}catch(e){reject(e);}});}
-async function googleApi(path,token,options={}){const r=await fetch(`https://www.googleapis.com${path}`,{...options,headers:{Authorization:`Bearer ${token}`,Accept:'application/json',...(options.body?{'Content-Type':'application/json'}:{})}});const d=await r.json().catch(()=>({}));if(!r.ok){if(r.status===401)throw new Error('Google authorization expired. Reconnect the account.');if(r.status===403)throw new Error('Insufficient Blogger permission or Blogger API access is disabled.');if(r.status===404)throw new Error('Blogger blog was not found or access was revoked.');if(r.status===429)throw new Error('Blogger API rate limit reached; retry later.');throw new Error(d.error?.message||`Google API request failed (${r.status})`);}return d;}
-async function listBlogs(token){const d=await googleApi('/blogger/v3/users/self/blogs?fields=items(id,name,url)',token);return(d.items||[]).map(b=>({id:String(b.id),name:b.name||String(b.id),url:b.url||''}));}
-function renderAccounts(){const root=$('#accountList'),br=$('#blogList');root.innerHTML='';br.innerHTML='';if(!accounts.length)root.innerHTML='<p class="muted">No Google accounts connected yet.</p>';let n=0;for(const a of accounts){const el=document.createElement('div');el.className='account';el.innerHTML=`<div class="account-top"><div><strong>${escapeHtml(a.email)}</strong><br><small>${escapeHtml(a.name)}</small></div><button class="ghost">Reconnect</button></div>`;el.querySelector('button').onclick=()=>{tokenClients.delete(a.id);connectGoogle();};root.appendChild(el);for(const b of a.blogs||[]){n++;const row=document.createElement('label');row.className='blog';row.innerHTML=`<input type="checkbox" name="blogId" value="${escapeHtml(a.id)}::${escapeHtml(b.id)}"><span><strong>${escapeHtml(b.name)}</strong><br><small>${escapeHtml(b.url)}</small><small>Google: ${escapeHtml(a.email)}</small></span>`;br.appendChild(row);}}if(!n)br.innerHTML='<p class="muted">No Blogger blogs available.</p>';}
-async function publishAll(e){e.preventDefault();const state=$('#publishState'),selected=[...document.querySelectorAll('input[name="blogId"]:checked')].map(x=>x.value);if(!selected.length){state.textContent='Select at least one blog.';return;}const f=new FormData(e.currentTarget),post={title:String(f.get('title')).trim(),chapterNumber:String(f.get('chapterNumber')||'').trim(),slug:String(f.get('slug')).trim(),content:String(f.get('content')),featuredImage:String(f.get('featuredImage')||'').trim(),labels:String(f.get('labels')||'').split(',').map(x=>x.trim()).filter(Boolean)};if(!post.title||!post.slug||!post.content){state.textContent='Title, slug and content are required.';return;}state.textContent=`Publishing to ${selected.length} blog(s)…`;const results=[];for(const key of selected){const [aid,bid]=key.split('::'),a=accounts.find(x=>x.id===aid),b=a?.blogs.find(x=>x.id===bid);results.push(a&&b?await publishOne(a,b,post):{blogId:bid,status:'failed',success:false,error:'Connected blog was not found.'});renderResults(results);}saveJson(HISTORY_KEY,[...results.map(r=>({...r,at:new Date().toISOString(),slug:post.slug})),...loadJson(HISTORY_KEY,[])].slice(0,100));renderHistory();state.textContent='Done. Each blog was handled independently.';}
-async function publishOne(account,blog,post){try{const token=await getToken(account),marker=`extension-publisher:${await sha256(`${blog.id}|${post.slug}|${post.chapterNumber}`)}`,duplicate=await findDuplicate(blog.id,marker,token);if(duplicate)return{blogId:blog.id,blogName:blog.name,accountEmail:account.email,status:'duplicate',success:false,url:duplicate.url||'',error:'Already published'};let content=post.content;if(post.featuredImage&&!content.includes(post.featuredImage))content=`<p><img src="${escapeHtml(post.featuredImage)}" alt=""></p>${content}`;content+=`\n<!-- ${marker} -->`;const body={title:post.title,content};if(post.labels.length)body.labels=post.labels;const d=await googleApi(`/blogger/v3/blogs/${encodeURIComponent(blog.id)}/posts?isDraft=false`,token,{method:'POST',body:JSON.stringify(body)});return{blogId:blog.id,blogName:blog.name,accountEmail:account.email,status:'success',success:true,url:d.url||'',postId:d.id||''};}catch(e){return{blogId:blog.id,blogName:blog.name,accountEmail:account.email,status:'failed',success:false,error:e.message};}}
-async function findDuplicate(blogId,marker,token){try{const d=await googleApi(`/blogger/v3/blogs/${encodeURIComponent(blogId)}/posts/search?q=${encodeURIComponent(marker)}&fetchBodies=true`,token);return(d.items||[]).find(p=>typeof p.content==='string'&&p.content.includes(marker))||null;}catch(e){if(/not found|access was revoked/i.test(e.message))return null;throw e;}}
-async function sha256(v){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
-function renderResults(rs){$('#resultsCard').hidden=false;$('#resultList').innerHTML=rs.map(r=>`<div class="result"><strong>${escapeHtml(r.blogName||r.blogId)}</strong> — <span class="${r.success||r.status==='duplicate'?'success':'failed'}">${escapeHtml(r.status)}</span>${r.url?`<br><a href="${escapeHtml(r.url)}" target="_blank" rel="noopener">Open post</a>`:''}<br><small>${escapeHtml(r.error||'')}</small></div>`).join('');}
-function renderHistory(){const items=loadJson(HISTORY_KEY,[]);$('#publicationList').innerHTML=items.length?items.map(p=>`<div class="publication"><strong>${escapeHtml(p.blogName||p.blogId)}</strong> — <span class="${p.status==='success'||p.status==='duplicate'?'success':'failed'}">${escapeHtml(p.status)}</span><br><small>${escapeHtml(p.accountEmail||'')} · ${escapeHtml(p.slug||'')} · ${escapeHtml(p.at||'')}</small>${p.url?`<br><a href="${escapeHtml(p.url)}" target="_blank" rel="noopener">Open post</a>`:''}</div>`).join(''):'<p class="muted">No publications recorded yet.</p>';}
-init();
+function setBridgeState(message, ok=false){$('#bridgeState').textContent=message;$('#bridgeState').className=ok?'success':'muted';}
+
+async function loadAccounts(){
+  try{
+    const data=await bridge('accounts'); accounts=data.accounts||[]; renderAccounts(); setBridgeState(`Extension connected. ${accounts.length} Google account(s) available.`,true);
+  }catch(error){
+    accounts=[]; renderAccounts(); setBridgeState(error.message); 
+  }
+}
+
+function renderAccounts(){
+  const root=$('#accountList'), blogsRoot=$('#blogList'); root.innerHTML=''; blogsRoot.innerHTML='';
+  if(!accounts.length) root.innerHTML='<p class="muted">No Google accounts connected yet. Click “Connect Google account”.</p>';
+  let count=0;
+  for(const account of accounts){
+    const el=document.createElement('div'); el.className='account';
+    const statusClass=account.status==='connected'?'success':account.status==='reauthorization_required'?'warning':'failed';
+    el.innerHTML=`<div class="account-top"><div><strong>${escapeHtml(account.email)}</strong><br><small>${escapeHtml(account.name||'')}</small></div><div><span class="status ${statusClass}">${escapeHtml(account.status||'connected')}</span> <button class="ghost reconnect">Reconnect</button> <button class="ghost disconnect">Disconnect</button></div></div>${account.lastError?`<small class="warning">${escapeHtml(account.lastError)}</small>`:''}`;
+    el.querySelector('.reconnect').onclick=async()=>{try{await bridge('connect');await loadAccounts();}catch(e){alert(e.message);}};
+    el.querySelector('.disconnect').onclick=async()=>{if(confirm(`Disconnect ${account.email}?`)){await bridge('disconnect',{accountId:account.id});await loadAccounts();}};
+    root.appendChild(el);
+    for(const blog of account.blogs||[]){
+      count++; const row=document.createElement('label'); row.className='blog';
+      row.innerHTML=`<input type="checkbox" name="blogTarget" data-account="${escapeHtml(account.id)}" data-blog="${escapeHtml(blog.id)}"><span><strong>${escapeHtml(blog.name)}</strong><br><small>${escapeHtml(blog.url||'')}</small><small>Google account: ${escapeHtml(account.email)}</small></span>`;
+      blogsRoot.appendChild(row);
+    }
+  }
+  if(!count) blogsRoot.innerHTML='<p class="muted">No Blogger blogs available. The connected account may not have Blogger access.</p>';
+}
+
+$('#connectGoogle').addEventListener('click',async()=>{try{await bridge('connect');await loadAccounts();}catch(e){alert(e.message);}});
+$('#testBridge').addEventListener('click',loadAccounts);
+
+$('#publishForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const state=$('#publishState');
+  const selected=[...document.querySelectorAll('input[name="blogTarget"]:checked')].map(x=>({accountId:x.dataset.account,blogId:x.dataset.blog}));
+  if(!selected.length){state.textContent='Select at least one Blogger blog.';return;}
+  const f=new FormData(e.currentTarget);
+  const post={title:String(f.get('title')||'').trim(),chapterNumber:String(f.get('chapterNumber')||'').trim(),slug:String(f.get('slug')||'').trim(),content:String(f.get('content')||''),featuredImage:String(f.get('featuredImage')||'').trim(),labels:String(f.get('labels')||'').split(',').map(x=>x.trim()).filter(Boolean)};
+  if(!post.title||!post.slug||!post.content){state.textContent='Title, slug and content are required.';return;}
+  state.textContent=`Publishing to ${selected.length} blog(s)…`;
+  try{const data=await bridge('publish',{targets:selected,post});renderResults(data.results||[]);await loadHistory();state.textContent='Done. Each blog was handled independently.';}
+  catch(error){state.textContent=error.message;}
+});
+
+function renderResults(results){
+  $('#resultsCard').hidden=false; const root=$('#resultList'); root.innerHTML='';
+  for(const r of results){const el=document.createElement('div');el.className='result';const cls=r.success?'success':r.status==='duplicate'?'warning':'failed';el.innerHTML=`<div class="result-grid"><div><strong>${escapeHtml(r.blogName||r.blogId)}</strong><br><span class="${cls}">${escapeHtml(r.status||'failed')}</span></div>${r.url?`<a class="url" href="${escapeHtml(r.url)}" target="_blank" rel="noopener">Open post</a>`:''}</div><small>${escapeHtml(r.error||'')}</small>`;root.appendChild(el);}
+}
+
+async function loadHistory(){try{const data=await bridge('history');renderHistory(data.history||[]);}catch(error){$('#publicationList').innerHTML=`<p class="error">${escapeHtml(error.message)}</p>`;}}
+function renderHistory(items){const root=$('#publicationList');if(!items.length){root.innerHTML='<p class="muted">No publications recorded yet.</p>';return;}root.innerHTML=items.map(p=>`<div class="publication"><strong>${escapeHtml(p.blogName||p.blogId)}</strong> — <span class="${p.status==='success'||p.status==='duplicate'?'success':p.status==='reauthorization_required'?'warning':'failed'}">${escapeHtml(p.status)}</span><br><small>${escapeHtml(p.accountEmail||'')} · ${escapeHtml(p.slug||'')} · ${escapeHtml(p.at||'')}</small>${p.url?`<br><a class="url" href="${escapeHtml(p.url)}" target="_blank" rel="noopener">Open post</a>`:''}${p.error?`<br><small class="failed">${escapeHtml(p.error)}</small>`:''}</div>`).join('');}
+$('#refreshPublications').addEventListener('click',loadHistory);
+
+loadAccounts();
+loadHistory();
