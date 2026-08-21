@@ -19,13 +19,19 @@
   <div id="accountList"><p class="muted">Checking extension…</p></div>
 </section>
 <section class="card">
-  <div class="section-head"><div><h2>Create chapter</h2><p class="muted">Enter the chapter data and images. The CMS builds the Blogger-ready HTML automatically.</p></div><span id="generatorState" class="status">Ready</span></div>
+  <div class="section-head"><div><h2>Create chapter</h2><p class="muted">Enter the chapter data and upload the pages from your PC. The CMS builds the Blogger-ready HTML automatically.</p></div><span id="generatorState" class="status">Ready</span></div>
   <form id="publishForm">
     <div class="grid"><label>Manga / series name<input name="seriesName" maxlength="200" required></label><label>Chapter number<input name="chapterNumber" maxlength="50" required></label></div>
     <div class="grid"><label>Post title<input name="title" maxlength="300" required></label><label>Slug<input name="slug" pattern="[A-Za-z0-9]+(-[A-Za-z0-9]+)*" required></label></div>
-    <label>Featured image URL<input name="featuredImage" type="url"></label>
+    <label>Featured image URL <span class="muted">(optional)</span><input name="featuredImage" type="url"></label>
     <label>Labels<input name="labels" placeholder="manga, chapter, action"></label>
-    <div class="card nested"><h3>Chapter images</h3><p class="muted">Add images in reading order. No written text is inserted between images.</p><div id="imageLinks"></div><button type="button" id="addImageLink" class="ghost">+ Add image</button></div>
+    <div class="card nested">
+      <h3>Chapter images</h3>
+      <p class="muted">Select all chapter pages directly from your PC. They stay in the browser while you build the post. Drag rows to change reading order.</p>
+      <div class="upload-actions"><label class="upload-button">📁 Select chapter images<input id="imageFiles" type="file" accept="image/*" multiple hidden></label><button type="button" id="clearImages" class="ghost">Clear images</button><span id="imageCount" class="muted">0 images</span></div>
+      <div id="imageLinks"></div>
+      <details class="advanced-images"><summary>Advanced: use image URLs instead</summary><p class="muted">Use this only when the image is already publicly hosted.</p><button type="button" id="addImageLink" class="ghost">+ Add image URL</button></details>
+    </div>
     <div class="card nested"><h3>Full chapter button</h3><div class="grid"><label>Button text<input name="fullChapterText" value="完全なチャプターを読む" maxlength="100"></label><label>Full chapter URL<input name="fullChapterUrl" type="url" placeholder="https://example.com/full-chapter/123"></label></div><p class="muted">The same button is generated at both the start and end of the post.</p></div>
     <div class="card nested settings-panel"><h3>Post generator settings</h3><div class="grid"><label>Ad HTML<textarea id="adHtml" rows="5" placeholder="Paste your advertisement HTML once. It is saved locally in this browser."></textarea></label><div><label>Ads target<input id="adCount" type="number" min="1" max="50" value="8"></label><p class="muted">Ads are distributed through the image sequence. The generator targets roughly 7–8 ads for 20 images and never inserts written text between images.</p><label>Opening text style<select id="contentTone"><option value="standard">Standard</option><option value="short">Short</option><option value="detailed">Detailed</option></select></label></div></div><button type="button" id="saveSettings" class="ghost">Save generator settings</button> <span id="settingsState" class="muted"></span></div>
     <div class="actions"><button type="button" id="generatePreview" class="secondary">Generate preview</button><button class="primary" type="submit">Publish to selected blogs</button><span id="publishState" class="muted"></span></div>
