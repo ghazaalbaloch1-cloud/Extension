@@ -3,11 +3,37 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="refresh" content="0; url=./frontend/">
-<title>Blogger Central CMS</title>
-<script>window.location.replace('./frontend/');</script>
+<title>Extension — Blogger Central CMS</title>
+<link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-<p>Opening Blogger Central CMS…</p>
-</body>
-</html>
+<main class="container">
+<header class="hero">
+  <div><p class="eyebrow">Central Publishing CMS</p><h1>Extension</h1><p class="muted">Create one chapter and publish it to multiple Blogger blogs through the Chrome bridge.</p></div>
+  <div class="hero-badge">DARK · BLUE</div>
+</header>
+<section class="card setup-card"><h2>Chrome access bridge</h2><p class="muted">The CMS never stores Google credentials. Install the Blogger Access extension, then connect your Google accounts below.</p><button id="testBridge">Check extension connection</button> <span id="bridgeState" class="muted"></span></section>
+<div id="app">
+<section class="card">
+  <div class="section-head"><div><h2>Connected Google accounts</h2><p class="muted">Each Google account is authorized independently.</p></div><button id="connectGoogle" class="primary">+ Connect Google account</button></div>
+  <div id="accountList"><p class="muted">Checking extension…</p></div>
+</section>
+<section class="card">
+  <div class="section-head"><div><h2>Create chapter</h2><p class="muted">Enter the chapter data and images. The CMS builds the Blogger-ready HTML automatically.</p></div><span id="generatorState" class="status">Ready</span></div>
+  <form id="publishForm">
+    <div class="grid"><label>Manga / series name<input name="seriesName" maxlength="200" required></label><label>Chapter number<input name="chapterNumber" maxlength="50" required></label></div>
+    <div class="grid"><label>Post title<input name="title" maxlength="300" required></label><label>Slug<input name="slug" pattern="[A-Za-z0-9]+(-[A-Za-z0-9]+)*" required></label></div>
+    <label>Featured image URL<input name="featuredImage" type="url"></label>
+    <label>Labels<input name="labels" placeholder="manga, chapter, action"></label>
+    <div class="card nested"><h3>Chapter images</h3><p class="muted">Add images in reading order. No written text is inserted between images.</p><div id="imageLinks"></div><button type="button" id="addImageLink" class="ghost">+ Add image</button></div>
+    <div class="card nested"><h3>Full chapter button</h3><div class="grid"><label>Button text<input name="fullChapterText" value="完全なチャプターを読む" maxlength="100"></label><label>Full chapter URL<input name="fullChapterUrl" type="url" placeholder="https://example.com/full-chapter/123"></label></div><p class="muted">The same button is generated at both the start and end of the post.</p></div>
+    <div class="card nested settings-panel"><h3>Post generator settings</h3><div class="grid"><label>Ad HTML<textarea id="adHtml" rows="5" placeholder="Paste your advertisement HTML once. It is saved locally in this browser."></textarea></label><div><label>Ads target<input id="adCount" type="number" min="1" max="50" value="8"></label><p class="muted">Ads are distributed through the image sequence. The generator targets roughly 7–8 ads for 20 images and never inserts written text between images.</p><label>Opening text style<select id="contentTone"><option value="standard">Standard</option><option value="short">Short</option><option value="detailed">Detailed</option></select></div></div><button type="button" id="saveSettings" class="ghost">Save generator settings</button> <span id="settingsState" class="muted"></span></div>
+    <div class="actions"><button type="button" id="generatePreview" class="secondary">Generate preview</button><button class="primary" type="submit">Publish to selected blogs</button><span id="publishState" class="muted"></span></div>
+  </form>
+</section>
+<section class="card" id="previewCard" hidden><div class="section-head"><div><h2>Generated preview</h2><p class="muted">This is the HTML structure that will be sent to Blogger.</p></div><button id="copyHtml" class="ghost">Copy HTML</button></div><div id="previewFrame" class="preview-frame"></div><details><summary>View generated HTML</summary><pre id="generatedHtml"></pre></details></section>
+<section class="card" id="resultsCard" hidden><h2>Publishing results</h2><div id="resultList"></div></section>
+<section class="card"><div class="section-head"><div><h2>Recent publications</h2><p class="muted">Per-blog local history from the Chrome extension.</p></div><button id="refreshPublications" class="ghost">Refresh</button></div><div id="publicationList"></div></section>
+</div></main>
+<script src="./config.js"></script><script src="./app.js" defer></script>
+</body></html>
