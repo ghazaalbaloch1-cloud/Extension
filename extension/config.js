@@ -5,4 +5,4 @@
 //
 // Use `var` because this file is loaded by importScripts() into the MV3
 // service-worker global scope before background.js is evaluated.
-var EXTENSION_GOOGLE_CLIENT_ID = 'REPLACE_WITH_CHROME_EXTENSION_CLIENT_ID.apps.googleusercontent.com';
+var EXTENSION_GOOGLE_CLIENT_ID = '721123446262-tdq3caekhgsl4ufjj6f6earjd739uors.apps.googleusercontent.com';
