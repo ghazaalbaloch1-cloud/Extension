@@ -1,3 +1,3 @@
 // Public configuration only. No Google client secret or access/refresh token belongs here.
-// This ID is pinned by the public key in extension/manifest.json.
-window.BLOGGER_EXTENSION_ID = 'ljkfmjkbepgpnjejnpbkpmkjjjjgdijg';
+// This must match the Extension ID of the unpacked Chrome extension currently used for testing.
+window.BLOGGER_EXTENSION_ID = 'igafaiellnfbbgnaijlpeanpdipiodin';
