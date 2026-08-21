@@ -1,0 +1,33 @@
+name: Package Chrome Extension
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Package extension
+        run: |
+          test -f extension/manifest.json
+          test -f extension/background.js
+          test -f extension/config.js
+          test -f extension/popup.html
+          test -f extension/popup.js
+          cd extension
+          zip -r ../Extension-Chrome.zip .
+
+      - name: Upload extension ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Extension-Chrome
+          path: Extension-Chrome.zip
+          if-no-files-found: error
