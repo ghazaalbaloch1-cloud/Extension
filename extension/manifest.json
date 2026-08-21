@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Extension — Blogger Access Bridge",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Secure local bridge between the Extension CMS and independently authorized Blogger accounts.",
   "permissions": ["identity", "storage"],
   "host_permissions": [
@@ -21,7 +21,8 @@
     "matches": [
       "https://ghazaalbaloch1-cloud.github.io/*",
       "http://localhost/*",
-      "http://127.0.0.1/*"
+      "http://127.0.0.1/*",
+      "file:///*"
     ]
   },
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuNAhCisKirRAOV4ZR2Sgx1tCZeSnxXDp3KAfx1nPiLtFgavUhro8NaQBfsyIGDeTYJ0C7tQzyDCwKOvb4s+7I4i0Hgj4618bzbl81xxo7c+S7YFNi1f3OF858LSXWLDnj/9Zw/gHly5WtABTQg5WMcxvyVFgoJrTmbFy6qhQrWYQe4dcSHD2N7xpTWryTU5Dj/ScKTyPHdleJgQ6/5fKbG/LQrRCKs4SKx2cPKOdEyhSF3G7Q89iuu03yAd+JfZLc4r7E2ySl2V7bduRxrLrc3od3E1zXSGGq7szDZOQ47h65KncWH8llf/2HMXNGwuaLBYCi+nMb6cfVI8uiVD0VwIDAQAB"
