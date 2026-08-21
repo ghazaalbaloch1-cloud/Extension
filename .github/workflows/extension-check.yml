@@ -1,0 +1,32 @@
+name: Validate Chrome Extension
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate manifest JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('extension/manifest.json','utf8')); console.log('manifest.json OK')"
+      - name: Syntax check extension JavaScript
+        run: |
+          node --check extension/config.js
+          node --check extension/service-worker.js
+          node --check extension/background.js
+          node --check extension/popup.js
+      - name: Syntax check CMS JavaScript
+        run: |
+          node --check frontend/app.js
+          node --check frontend/bridge-fixes.js
