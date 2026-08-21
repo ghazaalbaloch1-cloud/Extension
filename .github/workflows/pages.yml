@@ -18,13 +18,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - name: Prepare static site
         run: |
+          set -e
+          test -f frontend/index.html
+          test -f frontend/styles.css
+          test -f frontend/app.js
+          test -f frontend/config.js
+          rm -rf _site
           mkdir -p _site
-          cp frontend/index.html frontend/styles.css frontend/app.js frontend/config.js _site/
+          cp -v frontend/index.html frontend/styles.css frontend/app.js frontend/config.js _site/
+          test -f _site/index.html
+          echo "Prepared GitHub Pages site:"
+          find _site -maxdepth 1 -type f -printf '%f\n' | sort
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
