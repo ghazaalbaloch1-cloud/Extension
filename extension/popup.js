@@ -12,6 +12,21 @@ async function send(message) {
   }
 }
 
+async function checkRuntime() {
+  try {
+    const response = await chrome.runtime.sendMessage({type:'ping'});
+    if (response?.ok) {
+      $('#runtimeState').innerHTML = '<span class="ok">✓ Service worker responding</span>';
+      return true;
+    }
+    $('#runtimeState').innerHTML = `<span class="bad">✗ Service worker returned an error</span>`;
+    return false;
+  } catch (error) {
+    $('#runtimeState').innerHTML = `<span class="bad">✗ ${escapeHtml(error?.message || 'Service worker unavailable')}</span>`;
+    return false;
+  }
+}
+
 function renderDiagnostics() {
   const manifest = chrome.runtime.getManifest();
   $('#extensionId').textContent = chrome.runtime.id;
@@ -25,6 +40,8 @@ function renderDiagnostics() {
 
 async function render() {
   renderDiagnostics();
+  const runtimeOk = await checkRuntime();
+  if (!runtimeOk) return;
   const response = await send({type:'accounts'});
   const root = $('#accounts');
   root.innerHTML = '';
