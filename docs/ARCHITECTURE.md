@@ -1,52 +1,58 @@
 # Extension architecture
 
-## Runtime
+## Current runtime
 
 ```text
 GitHub Pages CMS
       |
-      | HTTPS + secure session cookie
+      | chrome.runtime.sendMessage
       v
-Cloudflare Worker API
+Chrome Extension (MV3 service worker)
       |
       +--> Google OAuth 2.0
       |
       +--> Blogger API v3
       |
-      +--> Cloudflare KV
+      +--> chrome.storage.local
+      |       +-- authorized Google accounts
+      |       +-- access/refresh tokens
+      |       +-- discovered Blogger blogs
+      |       +-- publication history
+      |
+      +--> GitHub Contents API (CMS media uploader)
               |
-              +-- CMS sessions / OAuth state
-              +-- independently authorized Google accounts
-              +-- discovered Blogger blogs
-              +-- per-blog publication records
+              +-- public chapter images under /media
 ```
+
+## Security boundaries
+
+- Google OAuth tokens are kept in the Chrome extension's local storage and are never sent to the GitHub Pages CMS.
+- The CMS communicates with the extension only through `externally_connectable` origins listed in `extension/manifest.json`.
+- The extension validates the sender origin before handling external messages.
+- The Google OAuth client ID is public configuration. No Google client secret belongs in the repository.
+- GitHub image hosting uses a user-supplied fine-grained GitHub token. The token is stored only in the current browser's localStorage and should be restricted to the media repository with `Contents: read and write`.
 
 ## Account model
 
-A CMS user is separate from a Google publishing account. The current bootstrap CMS user is authenticated by a server-side password and receives a short-lived session. Google publishing accounts are identified by Google's stable `sub` claim and each account owns its own encrypted OAuth token set and Blogger blog list.
+A CMS user can connect multiple Google accounts. Each account is identified by Google's stable `sub` claim and owns its own authorization state and Blogger blog list. There is no hardcoded five-account limit.
 
-A blog is stored as a child of the Google account that authorized access to it. There is no global Google account assumption and no hardcoded five-account limit.
+A Blogger blog is always published through the Google account that authorized that blog. One failed target does not roll back successful targets.
 
 ## OAuth
 
-The Worker performs the OAuth authorization-code flow. It requests the Blogger management scope plus `openid`, `email`, and `profile` so the connected account can be identified. Offline access is requested so the server can refresh expired access tokens. OAuth state is random, short-lived, and stored server-side.
-
-Refresh tokens and access tokens are encrypted with AES-GCM before being written to KV. Client secrets are Worker secrets and never enter the frontend.
+The extension performs the Google OAuth authorization-code flow using PKCE. `extension/service-worker.js` loads the public `extension/config.js` before the existing `background.js` runtime starts. The client ID must be created in Google Cloud as a Chrome Extension OAuth client for the exact extension ID.
 
 ## Publishing
 
-Each selected blog is resolved to its authorized Google account. Publishing is performed independently for every blog. One failure does not roll back successful publications on other blogs.
+Each selected blog is handled independently through Blogger REST API v3 `posts.insert`. Duplicate protection uses a deterministic marker derived from blog ID, slug, and chapter number. A retry rechecks the target before creating another post.
 
-The publisher uses Blogger REST API v3 `posts.insert` for publishing. Duplicate protection uses two layers:
+Blogger controls the final public URL structure. The CMS treats the supplied slug as the logical publication identifier rather than pretending it can force every part of a Blogger URL.
 
-1. A server-side publication record keyed by blog ID + slug + chapter.
-2. A Blogger-generated unique label (`ext-<hash>`) attached to the post and checked through Blogger's posts list API before inserting.
+## Images
 
-Blogger controls the final URL structure/date path; the CMS treats the supplied slug as the logical identifier rather than falsely claiming it can force every part of the Blogger URL.
+Blogger's `posts.insert` accepts HTML content but does not provide a separate simple chapter-image storage workflow. The CMS therefore uploads local PC images to a public GitHub repository through the GitHub Contents API and places the resulting raw GitHub URLs in the Blogger HTML. Existing public image URLs can still be used directly.
 
-## Storage
-
-Cloudflare KV is intentionally used instead of Firestore or a traditional database. Token values are encrypted before storage. Logs never contain access tokens, refresh tokens, client secrets, or cookies.
+Uploads are performed sequentially to avoid conflicting updates to the same repository contents endpoint.
 
 ## Failure isolation
 
