@@ -2,85 +2,54 @@
 
 ## 1. Google Cloud project
 
-Create or use a Google Cloud project. Enable **Blogger API v3**. Create an OAuth 2.0 Web application client. Add the exact Worker callback URL as an authorized redirect URI:
+Create or use a Google Cloud project and enable **Blogger API v3**.
 
-`https://YOUR-WORKER-DOMAIN/oauth/google/callback`
+Create an OAuth 2.0 client with application type **Chrome Extension** for the exact Chrome extension ID declared by `extension/manifest.json`. Put that public client ID in `extension/config.js` before packaging the extension.
 
-The OAuth consent screen must include the Blogger scope:
+The extension requests the Blogger scope:
 
 `https://www.googleapis.com/auth/blogger`
 
-The Worker also requests OpenID/email/profile identity scopes so connected Google accounts can be displayed safely.
+It also requests OpenID/email/profile identity scopes so connected Google accounts can be displayed safely.
 
-## 2. Cloudflare KV
+> There is no Cloudflare Worker or server-side OAuth service in the current architecture. The extension owns the OAuth flow and Blogger API calls.
 
-Create one Workers KV namespace for production and one preview namespace. Put their IDs into `worker/wrangler.toml`.
+## 2. Extension package
 
-KV is used for sessions, OAuth state, account records, blog mappings, and publication records. Token values are encrypted before storage.
+Load the `extension/` directory in Chrome at `chrome://extensions` with **Developer mode** enabled, or use the packaged ZIP produced by the GitHub Actions workflow.
 
-## 3. Worker secrets
+Before loading/packaging, replace the placeholder in `extension/config.js` with the real Chrome Extension OAuth client ID. Never commit a client secret, access token, or refresh token.
 
-From `worker/`, configure:
+After loading the extension, open its popup and click **Connect Google account**. Complete Google's authorization. The extension stores account/token data locally in Chrome storage.
 
-```bash
-npx wrangler secret put GOOGLE_CLIENT_ID
-npx wrangler secret put GOOGLE_CLIENT_SECRET
-npx wrangler secret put GOOGLE_REDIRECT_URI
-npx wrangler secret put TOKEN_ENCRYPTION_KEY
-npx wrangler secret put SESSION_SECRET
-npx wrangler secret put CMS_ADMIN_PASSWORD
-```
+## 3. GitHub Pages
 
-Use a long random value for `TOKEN_ENCRYPTION_KEY` and `SESSION_SECRET`. Never commit them.
+In repository settings, enable GitHub Pages using **GitHub Actions** as the source. The included Pages workflow publishes only the `frontend/` static files.
 
-## 4. Deploy Worker
+The frontend communicates with the installed extension through `chrome.runtime.sendMessage`. `frontend/config.js` must contain the exact extension ID shown by Chrome.
 
-```bash
-cd worker
-npx wrangler deploy
-```
+## 4. First connection
 
-The resulting HTTPS Worker URL becomes the API base used by the CMS.
+1. Install the extension.
+2. Confirm the extension ID matches `frontend/config.js`.
+3. Confirm `extension/config.js` contains the real Chrome Extension OAuth client ID.
+4. Open the extension popup and connect a Google account.
+5. Open the GitHub Pages CMS.
+6. Click **Connect Google account** if the extension is not already connected.
+7. Confirm the CMS lists the account and its Blogger blogs.
+8. Select one or more blogs and publish a test post.
 
-## 5. Configure frontend
+## 5. Testing checklist
 
-Edit `frontend/config.js` and replace:
-
-`https://REPLACE_WITH_WORKER_DOMAIN`
-
-with the deployed Worker URL.
-
-Also set `APP_BASE_URL` to the GitHub Pages URL and `ALLOWED_ORIGIN` to the GitHub Pages origin as Worker secrets/vars.
-
-## 6. GitHub Pages
-
-In the repository settings, enable GitHub Pages using **GitHub Actions** as the source. The included workflow publishes only the `frontend/` static files.
-
-The frontend contains no Google client secret, access token, or refresh token.
-
-## 7. First connection
-
-1. Open the GitHub Pages CMS.
-2. Sign in with the server-side CMS administrator password.
-3. Click **Connect Google account**.
-4. Complete Google's authorization for Blogger.
-5. The Worker retrieves the authorized account identity and its Blogger blogs.
-6. Select one or more blogs and publish a test post.
-
-## 8. Additional Google accounts
-
-Repeat **Connect Google account** while signed into the CMS. Each Google account is stored independently. The system does not require the blogs to belong to one Google account.
-
-If a Blogger blog changes ownership/admin and the connected account loses access, the system reports that account/blog as requiring reauthorization. It never bypasses Google's permissions.
-
-## 9. Testing checklist
-
-- One account connects and lists blogs.
+- Extension loads without manifest/config errors.
+- Google account connection opens successfully.
+- One account connects and lists Blogger blogs.
+- Multiple Google accounts can be connected independently.
+- CMS can discover accounts through the extension bridge.
 - One blog publishes successfully.
-- Two independent Google accounts can be connected.
-- Blogs from both accounts can be selected in one publish operation.
+- Multiple selected blogs receive the same post independently.
 - A failed blog produces a per-blog failure while successful blogs remain successful.
 - Expired access tokens refresh through the stored refresh token.
-- Revoked refresh tokens move the account to `reauthorization_required`.
+- Revoked access is reported as requiring reauthorization.
 - Repeating the same blog/slug/chapter is blocked as a duplicate.
-- No secret/token appears in frontend source or server logs.
+- No secret/token appears in frontend source or committed repository files.
