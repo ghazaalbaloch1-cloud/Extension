@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Extension — Blogger Access Bridge",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Secure local bridge between the Extension CMS and independently authorized Blogger accounts.",
   "permissions": ["identity", "storage"],
   "host_permissions": [
