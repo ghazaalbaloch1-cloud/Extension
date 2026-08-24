@@ -1,6 +1,6 @@
 export async function aiChat({endpoint,apiKey,model,messages,temperature=.45,maxTokens=6000}){
   if(!endpoint||!apiKey) throw new Error('Configure an AI endpoint and API key first.');
-  const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization:`Bearer ${apiKey}`},body:JSON.stringify({model,messages,temperature,max_tokens:maxTokens})});
+  const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},body:JSON.stringify({model,messages,temperature,max_tokens:maxTokens})});
   const data=await res.json().catch(()=>({}));
   if(!res.ok) throw new Error(data.error?.message||`AI request failed: ${res.status}`);
   const text=data.choices?.[0]?.message?.content||data.output_text;
