@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Extension — WordPress SEO Autopilot</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<main class="shell">
+<header class="hero">
+  <div><p class="eyebrow">AUTONOMOUS CONTENT SYSTEM</p><h1>WordPress SEO Autopilot</h1><p>Research the SERP, find competitor gaps, build a stronger article, generate the design, optimize SEO, and publish to WordPress.</p></div>
+  <div class="badge">MVP · WORDPRESS</div>
+</header>
+<section class="steps" id="steps"><span class="active">1 Research</span><span>2 Strategy</span><span>3 Content</span><span>4 SEO</span><span>5 Design</span><span>6 Publish</span></section>
+<section class="card">
+<h2>Connection</h2>
+<div class="grid three">
+<label>WordPress URL<input id="wpUrl" placeholder="https://example.com"></label>
+<label>Username<input id="wpUser" autocomplete="username"></label>
+<label>Application Password<input id="wpPass" type="password" autocomplete="current-password"></label>
+</div>
+<div class="grid three">
+<label>AI endpoint<input id="aiEndpoint" placeholder="https://api.openai.com/v1/chat/completions"></label>
+<label>AI model<input id="aiModel" value="gpt-4.1-mini"></label>
+<label>AI API key<input id="aiKey" type="password"></label>
+</div>
+<div class="grid three">
+<label>Search API endpoint<input id="searchEndpoint" placeholder="https://your-search-api.example/search"></label>
+<label>Search API key<input id="searchKey" type="password"></label>
+<label>Language<select id="language"><option value="en">English</option><option value="ur">Urdu</option><option value="ja">Japanese</option></select></label>
+</div>
+<div class="actions"><button id="testWp" class="secondary">Test WordPress</button><button id="saveConfig" class="ghost">Save locally</button><span id="connectionState" class="muted"></span></div>
+<p class="notice">Credentials are used in this browser only. Do not commit keys to GitHub. For production, move AI/search calls behind your own server-side proxy.</p>
+</section>
+<section class="card">
+<h2>Article brief</h2>
+<div class="grid two">
+<label>Primary keyword<input id="keyword" placeholder="e.g. best anime streaming sites"></label>
+<label>Article type<select id="articleType"><option>Informational guide</option><option>How-to</option><option>Comparison</option><option>Review</option><option>Listicle</option><option>News analysis</option></select></label>
+</div>
+<label>Context / product / niche<textarea id="context" rows="4" placeholder="Tell the agent about your site, audience, product, and anything it must include."></textarea></label>
+<div class="grid two">
+<label>Target length<select id="length"><option value="1800">1,800 words</option><option value="2500" selected>2,500 words</option><option value="3500">3,500 words</option><option value="5000">5,000 words</option></select></label>
+<label>Publishing status<select id="status"><option value="draft">Draft</option><option value="publish">Publish immediately</option></select></label>
+</div>
+<div class="actions"><button id="runAutopilot" class="primary">🚀 Run SEO Autopilot</button><span id="runState" class="muted"></span></div>
+</section>
+<section class="dashboard grid two">
+<div class="card"><h2>Research intelligence</h2><div id="researchPanel" class="panel"><p class="muted">Waiting for research…</p></div></div>
+<div class="card"><h2>Content strategy</h2><div id="strategyPanel" class="panel"><p class="muted">Waiting for strategy…</p></div></div>
+</section>
+<section class="card"><div class="sectionHead"><h2>Generated article</h2><button id="copyArticle" class="ghost">Copy HTML</button></div><div id="articlePreview" class="article"></div><details><summary>Raw HTML</summary><pre id="articleHtml"></pre></details></section>
+<section class="card"><h2>SEO scorecard</h2><div id="seoPanel" class="scoregrid"><p class="muted">Run the autopilot to calculate the score.</p></div></section>
+<section class="card"><h2>Publishing</h2><div id="publishPanel"><p class="muted">The finished article will appear here.</p></div><button id="publishWp" class="primary" disabled>Publish to WordPress</button><span id="publishState" class="muted"></span></section>
+</main>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
