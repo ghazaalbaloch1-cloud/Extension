@@ -27,12 +27,17 @@ jobs:
           test -f frontend/app.js
           test -f frontend/config.js
           test -f frontend/bridge-fixes.js
+          test -f seo-autopilot/index.html
+          test -f seo-autopilot/styles.css
+          test -f seo-autopilot/app.js
           rm -rf _site
-          mkdir -p _site
+          mkdir -p _site/seo-autopilot
           cp -v frontend/index.html frontend/styles.css frontend/app.js frontend/config.js frontend/bridge-fixes.js _site/
+          cp -v seo-autopilot/*.html seo-autopilot/*.css seo-autopilot/*.js _site/seo-autopilot/
           test -f _site/index.html
+          test -f _site/seo-autopilot/index.html
           echo "Prepared GitHub Pages site:"
-          find _site -maxdepth 1 -type f -printf '%f\n' | sort
+          find _site -maxdepth 2 -type f -printf '%p\n' | sort
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
